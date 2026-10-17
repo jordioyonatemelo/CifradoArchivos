@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0b3d91">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cifrador">
+<title>Cifrador de archivos AES-256 © J. Oyonate</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#14181f;--mut:#5d6675;--bd:#d9dde4;--ac:#1f6feb;--acx:#fff;--ok:#18794e;--er:#c62828;--warn:#9a6700;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1116;--card:#171b22;--tx:#e8ebf0;--mut:#9aa3b2;--bd:#2c333f;--ac:#4c8dff;--acx:#06101f;--ok:#4cc38a;--er:#ff6b6b;--warn:#e3b341;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1116;--card:#171b22;--tx:#e8ebf0;--mut:#9aa3b2;--bd:#2c333f;--ac:#4c8dff;--acx:#06101f;--ok:#4cc38a;--er:#ff6b6b;--warn:#e3b341;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:640px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:1.5rem;margin:8px 0 2px}
+.cp{display:block;font-size:.8rem;font-weight:400;color:var(--mut);margin-top:2px}
+.sub{color:var(--mut);margin:0 0 18px;font-size:.92rem}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:14px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--bg);border:1px solid var(--bd);border-radius:12px;padding:4px;margin-bottom:14px}
+.tabs button{border:0;background:transparent;color:var(--mut);padding:10px;border-radius:9px;font:inherit;font-weight:600;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--ac);color:var(--acx)}
+.drop{border:2px dashed var(--bd);border-radius:12px;padding:26px 12px;text-align:center;color:var(--mut);cursor:pointer}
+.drop.over{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 8%,transparent)}
+.drop b{color:var(--tx)}
+ul{list-style:none;margin:12px 0 0;padding:0}
+li{display:flex;align-items:center;gap:8px;justify-content:space-between;border-top:1px solid var(--bd);padding:8px 0;font-size:.92rem}
+li span.n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
+li small{color:var(--mut);white-space:nowrap}
+label{display:block;font-weight:600;font-size:.9rem;margin:0 0 6px}
+.row{display:flex;gap:8px}
+input[type=password],input[type=text]{width:100%;padding:11px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit}
+input:focus-visible,button:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.btn{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:10px 14px;font:inherit;cursor:pointer;white-space:nowrap}
+.btn.p{background:var(--ac);color:var(--acx);border-color:var(--ac);font-weight:700;width:100%;padding:13px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.bar{height:6px;background:var(--bd);border-radius:4px;margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--er);transition:width .2s,background .2s}
+.hint{font-size:.82rem;color:var(--mut);margin-top:6px}
+.msg{font-size:.9rem;margin-top:10px;min-height:1.2em;white-space:pre-line}
+.msg.er{color:var(--er)}.msg.ok{color:var(--ok)}
+.note{color:var(--warn);font-size:.8rem}
+.fld{margin-bottom:14px}
+.hide{display:none!important}
+.sec{font-size:.82rem;color:var(--mut)}
+.sec summary{cursor:pointer}
+</style>
+<script>if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(function(){});</script>
+</head>
+<body>
+<main>
+<h1>🔐 Cifrador de archivos AES-256 <small class="cp">© J. Oyonate</small></h1>
+<p class="sub">Cifra y descifra cualquier archivo en tu navegador. Nada se sube a ningún servidor.</p>
+
+<div class="tabs" role="tablist">
+  <button role="tab" id="tE" aria-selected="true">Cifrar</button>
+  <button role="tab" id="tD" aria-selected="false">Descifrar</button>
+</div>
+
+<div class="card">
+  <div class="drop" id="drop" tabindex="0" role="button" aria-label="Seleccionar archivos">
+    <b id="dTitle">Arrastra archivos aquí</b><br>o toca para elegirlos (cualquier tipo)
+  </div>
+  <input type="file" id="file" multiple class="hide">
+  <ul id="list"></ul>
+</div>
+
+<div class="card">
+  <div class="fld">
+    <label for="pw">Clave de encriptado</label>
+    <div class="row">
+      <input type="password" id="pw" autocomplete="off" spellcheck="false">
+      <button class="btn" id="eye" type="button" aria-label="Mostrar u ocultar clave">👁</button>
+    </div>
+    <div id="strWrap"><div class="bar"><i id="str"></i></div><div class="hint" id="strT"></div></div>
+  </div>
+  <div class="fld" id="pw2w">
+    <label for="pw2">Repetir clave de encriptado</label>
+    <div class="row">
+      <input type="password" id="pw2" autocomplete="off" spellcheck="false">
+      <button class="btn" id="eye2" type="button" aria-label="Mostrar u ocultar clave repetida">👁</button>
+    </div>
+  </div>
+  <button class="btn p" id="go" disabled>Cifrar</button>
+  <div class="msg" id="msg" role="status"></div>
+</div>
+
+<div class="card hide" id="resCard">
+  <label>Resultado</label>
+  <ul id="res"></ul>
+  <button class="btn p" id="clr" type="button" style="margin-top:12px">🧹 Limpiar archivos y clave</button>
+</div>
+
+<details class="sec">
+  <summary>Detalles técnicos</summary>
+  <p>AES-256-GCM (cifrado autenticado) con clave derivada por PBKDF2-SHA-256 (600 000 iteraciones, sal aleatoria de 16 bytes) y IV aleatorio de 12 bytes. El nombre original del archivo va dentro del bloque cifrado. Los archivos cifrados se guardan en binario como «Encriptado_» + nombre original, y al descifrar como «Desencriptado_» + nombre original; no se pueden abrir hasta descifrarlos. <b>Si olvidas la clave de encriptado, no hay forma de recuperar el archivo.</b></p>
+</details>
+</main>
+
+<script>
+(function(){
+"use strict";
+var MAGIC=[0x41,0x45,0x53,0x46],VER=1,ITER=600000,HDR=37;
+var OK_EXT="gif png jpg jpeg webp mp4 webm mov txt json md docx pptx epub csv ttf html svg pdf xlsx zip".split(" ");
+var $=function(i){return document.getElementById(i)};
+var mode="E",files=[],busy=false,dl=null;
+var te=new TextEncoder(),td=new TextDecoder();
+
+try{claude.use("downloads").then(function(d){dl=d}).catch(function(){dl=null})}catch(e){dl=null}
+
+function fmt(n){return n<1024?n+" B":n<1048576?(n/1024).toFixed(1)+" KB":n<1073741824?(n/1048576).toFixed(1)+" MB":(n/1073741824).toFixed(2)+" GB"}
+function setMsg(t,c){var m=$("msg");m.textContent=t||"";m.className="msg"+(c?" "+c:"")}
+function ext(n){var i=n.lastIndexOf(".");return i<0?"":n.slice(i+1).toLowerCase()}
+
+function setMode(m){
+  mode=m;
+  $("tE").setAttribute("aria-selected",m==="E");$("tD").setAttribute("aria-selected",m==="D");
+  $("pw2w").classList.toggle("hide",m==="D");
+  $("strWrap").classList.toggle("hide",m==="D");
+  $("go").textContent=m==="E"?"Cifrar":"Descifrar";
+  $("dTitle").textContent=m==="E"?"Arrastra archivos aquí":"Arrastra los archivos encriptados aquí";
+  files=[];render();$("resCard").classList.add("hide");$("res").innerHTML="";setMsg("");validate();
+}
+$("tE").onclick=function(){setMode("E")};$("tD").onclick=function(){setMode("D")};
+
+function render(){
+  var ul=$("list");ul.innerHTML="";
+  files.forEach(function(f,i){
+    var li=document.createElement("li");
+    var n=document.createElement("span");n.className="n";n.textContent=f.name;
+    var s=document.createElement("small");s.textContent=fmt(f.size);
+    var x=document.createElement("button");x.className="btn";x.textContent="✕";x.setAttribute("aria-label","Quitar "+f.name);
+    x.onclick=function(){files.splice(i,1);render();validate()};
+    li.append(n,s,x);ul.append(li);
+  });
+}
+function addFiles(l){for(var i=0;i<l.length;i++)files.push(l[i]);render();validate()}
+$("drop").onclick=function(){$("file").click()};
+$("drop").onkeydown=function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();$("file").click()}};
+$("file").onchange=function(e){addFiles(e.target.files);e.target.value=""};
+["dragenter","dragover"].forEach(function(t){$("drop").addEventListener(t,function(e){e.preventDefault();$("drop").classList.add("over")})});
+["dragleave","drop"].forEach(function(t){$("drop").addEventListener(t,function(e){e.preventDefault();$("drop").classList.remove("over")})});
+$("drop").addEventListener("drop",function(e){if(e.dataTransfer&&e.dataTransfer.files)addFiles(e.dataTransfer.files)});
+
+function tog(inp,btn){
+  $(btn).onclick=function(){
+    var show=$(inp).type==="password";
+    $(inp).type=show?"text":"password";
+    $(btn).textContent=show?"🙈":"👁";
+  };
+}
+tog("pw","eye");tog("pw2","eye2");
+
+function strength(p){
+  var pool=0;if(/[a-z]/.test(p))pool+=26;if(/[A-Z]/.test(p))pool+=26;if(/\d/.test(p))pool+=10;if(/[^A-Za-z0-9]/.test(p))pool+=32;
+  var bits=p.length*Math.log2(pool||1);
+  if(/^(.)\1+$/.test(p)||/^(123|abc|password|qwerty)/i.test(p))bits=Math.min(bits,20);
+  return bits;
+}
+function validate(){
+  var p=$("pw").value,b=strength(p),bar=$("str");
+  var pct=Math.min(100,b/80*100);bar.style.width=(p?pct:0)+"%";
+  var lab,col;
+  if(b<40){lab="Débil";col="var(--er)"}else if(b<60){lab="Aceptable";col="var(--warn)"}else{lab="Fuerte";col="var(--ok)"}
+  bar.style.background=col;
+  $("strT").textContent=p?lab+" · usa una frase larga con varias palabras":"Usa una frase larga o 12+ caracteres variados";
+  var ok=files.length>0&&p.length>=1&&!busy;
+  if(mode==="E")ok=ok&&p.length>=8&&p===$("pw2").value;
+  $("go").disabled=!ok;
+  if(mode==="E"&&$("pw2").value&&p!==$("pw2").value)setMsg("Las claves de encriptado no coinciden.","er");
+  else if(mode==="E"&&p&&p.length<8)setMsg("La clave de encriptado debe tener al menos 8 caracteres.","er");
+  else if($("msg").classList.contains("er")&&!busy)setMsg("");
+}
+$("pw").oninput=validate;$("pw2").oninput=validate;
+$("pw").onkeydown=$("pw2").onkeydown=function(e){if(e.key==="Enter"&&!$("go").disabled)$("go").click()};
+
+function key(pass,salt,iter,usage){
+  return crypto.subtle.importKey("raw",te.encode(pass),"PBKDF2",false,["deriveKey"]).then(function(k){
+    return crypto.subtle.deriveKey({name:"PBKDF2",salt:salt,iterations:iter,hash:"SHA-256"},k,{name:"AES-GCM",length:256},false,[usage]);
+  });
+}
+function u32(n){var b=new Uint8Array(4);new DataView(b.buffer).setUint32(0,n);return b}
+
+function toB64(blob){
+  return new Promise(function(res,rej){
+    var r=new FileReader();r.onload=function(){var s=r.result;res(s.slice(s.indexOf(",")+1))};r.onerror=function(){rej(r.error)};r.readAsDataURL(blob);
+  });
+}
+function fromB64(s){
+  s=s.replace(/[^A-Za-z0-9+\/=]/g,"");
+  var parts=[],step=4*65536;
+  for(var i=0;i<s.length;i+=step){
+    var bin=atob(s.slice(i,i+step)),a=new Uint8Array(bin.length);
+    for(var j=0;j<bin.length;j++)a[j]=bin.charCodeAt(j);parts.push(a);
+  }
+  return new Blob(parts);
+}
+
+function encrypt(file,pass){
+  var salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+  var nm=te.encode(file.name),nl=new Uint8Array(2);new DataView(nl.buffer).setUint16(0,nm.length);
+  var hdr=new Uint8Array(HDR);hdr.set(MAGIC,0);hdr[4]=VER;hdr.set(u32(ITER),5);hdr.set(salt,9);hdr.set(iv,25);
+  return Promise.all([key(pass,salt,ITER,"encrypt"),new Blob([nl,nm,file]).arrayBuffer()]).then(function(r){
+    return crypto.subtle.encrypt({name:"AES-GCM",iv:iv,additionalData:hdr},r[0],r[1]);
+  }).then(function(ct){
+    return {name:"Encriptado_"+file.name,blob:new Blob([hdr,ct]),note:""};
+  });
+}
+
+function decrypt(file,pass){
+  return file.arrayBuffer().then(function(buf){
+    var u=new Uint8Array(buf),isRaw=MAGIC.every(function(v,i){return u[i]===v});
+    if(isRaw)return buf;
+    var txt=td.decode(u).split(/\r?\n/).filter(function(l){return l.indexOf("AES256")!==0&&l.indexOf("-----")!==0}).join("");
+    try{return fromB64(txt).arrayBuffer()}catch(e){throw new Error("Formato no reconocido")}
+  }).then(function(buf){
+    var u=new Uint8Array(buf);
+    if(u.length<HDR+16||!MAGIC.every(function(v,i){return u[i]===v}))throw new Error("Este archivo no parece cifrado con esta app.");
+    if(u[4]!==VER)throw new Error("Versión de formato no soportada.");
+    var iter=new DataView(buf).getUint32(5),salt=u.slice(9,25),iv=u.slice(25,37),hdr=u.slice(0,HDR);
+    if(iter<1000||iter>5000000)throw new Error("Archivo dañado.");
+    return key(pass,salt,iter,"decrypt").then(function(k){
+      return crypto.subtle.decrypt({name:"AES-GCM",iv:iv,additionalData:hdr},k,u.slice(HDR));
+    }).catch(function(){throw new Error("❌ Clave de encriptado incorrecta. Debe ser exactamente la misma con la que se cifró el archivo (o el archivo está dañado).")});
+  }).then(function(pt){
+    var dv=new DataView(pt),nl=dv.getUint16(0),name=td.decode(new Uint8Array(pt,2,nl)||[])||"archivo";
+    return {name:"Desencriptado_"+name,blob:new Blob([pt.slice(2+nl)]),note:""};
+  });
+}
+
+function addResult(r){
+  $("resCard").classList.remove("hide");
+  var final=r.name,note="";
+  if(dl&&OK_EXT.indexOf(ext(final))<0){final=final+".txt";note="Se añade .txt por restricciones de descarga; quítalo al guardar (contenido intacto).";}
+  var li=document.createElement("li");li.style.flexWrap="wrap";
+  var n=document.createElement("span");n.className="n";n.textContent=final;
+  var s=document.createElement("small");s.textContent=fmt(r.blob.size);
+  var b=document.createElement("button");b.className="btn";b.textContent="Guardar";
+  b.onclick=function(){
+    if(!dl){var u=URL.createObjectURL(r.blob),a=document.createElement("a");a.href=u;a.download=final;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},4000);setMsg("Guardado.","ok");return}
+    dl.save({filename:final,data:r.blob}).then(function(){setMsg("Guardado.","ok")}).catch(function(e){
+      if(e&&e.code==="declined")setMsg("Guardado cancelado.");else setMsg("No se pudo guardar ("+(e&&e.code||"error")+").","er");
+    });
+  };
+  li.append(n,s,b);
+  if(note){var nn=document.createElement("div");nn.className="note";nn.style.width="100%";nn.textContent=note;li.append(nn)}
+  $("res").append(li);
+}
+
+$("go").onclick=function(){
+  var pass=$("pw").value,list=files.slice(),ok=0,fail=0,errs=[];
+  busy=true;$("go").disabled=true;$("res").innerHTML="";$("resCard").classList.add("hide");
+  var p=Promise.resolve();
+  list.forEach(function(f,i){
+    p=p.then(function(){
+      setMsg((mode==="E"?"Cifrando ":"Descifrando ")+(i+1)+"/"+list.length+": "+f.name+"…");
+      return (mode==="E"?encrypt(f,pass):decrypt(f,pass)).then(function(r){ok++;addResult(r)}).catch(function(e){fail++;errs.push((list.length>1?f.name+": ":"")+(e&&e.message||"error"))});
+    });
+  });
+  p.then(function(){
+    busy=false;validate();
+    if(fail===0)setMsg("Listo: "+ok+" archivo(s) procesado(s). Pulsa «Guardar» en cada uno.","ok");
+    else setMsg((ok>0?ok+" correcto(s), "+fail+" con error:\n":"")+errs.join("\n"),"er");
+  });
+};
+
+$("clr").onclick=function(){
+  if(busy)return;
+  files=[];render();
+  ["pw","pw2"].forEach(function(i){$(i).value="";$(i).type="password"});
+  $("eye").textContent="👁";$("eye2").textContent="👁";
+  $("res").innerHTML="";$("resCard").classList.add("hide");
+  setMsg("");validate();
+};
+
+if(!window.crypto||!crypto.subtle){setMsg("Tu navegador no admite Web Crypto (se requiere HTTPS).","er");$("go").disabled=true}
+validate();
+})();
+</script>
+</body>
+</html>
